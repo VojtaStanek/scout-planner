@@ -31,18 +31,20 @@ interface ComposeScheduleProps {
   editable: boolean;
   violations: Violations;
   printView: boolean;
+  showOnlyGroups?: (string | null)[];
 }
 
 export const ComposeSchedule = ({
   editable,
   violations,
   printView,
+  showOnlyGroups,
 }: ComposeScheduleProps) => {
   const [widthScale, setWidthScale] = useState(1);
 
   // Programs
   const programs = usePrograms();
-  const scheduledPlannables = useMemo(() => {
+  const scheduledPlannablesAll = useMemo(() => {
     return programs.filter((it): it is ScheduledProgram => it.begin !== null);
   }, [programs]);
   const notScheduledPlannables = useMemo(() => {
@@ -58,6 +60,16 @@ export const ComposeSchedule = ({
   const contextMenuProgram = useMemo(() => {
     return programs.find((it) => it._id === contextMenu?.id);
   }, [programs, contextMenu]);
+
+  // Hard filtering (based on props - for printing)
+  const scheduledPlannables = useMemo(() => {
+    if (showOnlyGroups) {
+      return scheduledPlannablesAll.filter((it) =>
+        it.groups.some((group) => showOnlyGroups.includes(group)),
+      );
+    }
+    return scheduledPlannablesAll;
+  }, [scheduledPlannablesAll, showOnlyGroups]);
 
   // All dates of the schedule
   const dates = useMemo(() => {
@@ -112,19 +124,28 @@ export const ComposeSchedule = ({
 
   // Show virtual group on the top, if there are no groups or if there are programs without groups
   const hasAtLeastOneGroup = atendeeGroups.length > 0;
-  const programsWithoutGroups = scheduledPlannables.filter(
-    (it) => it.groups.length === 0,
-  );
+  const programsWithoutGroups = useMemo(() => {
+    return scheduledPlannables.filter((it) => it.groups.length === 0);
+  }, [scheduledPlannables]);
   const showVirtualGroup =
     !hasAtLeastOneGroup || programsWithoutGroups.length > 0;
   const shownGroups: [null | string, ...string[]] = useMemo(() => {
     const sortedAttendeGroupIds = atendeeGroups.map((it) => it._id);
-    return showVirtualGroup
-      ? [null, ...sortedAttendeGroupIds]
+    const groups = showVirtualGroup
+      ? ([null, ...sortedAttendeGroupIds] as [null, ...string[]])
       : (sortedAttendeGroupIds as [string, ...string[]]); // safe cast because showVirtualGroup is false, so there is at least one group
-  }, [atendeeGroups, showVirtualGroup]);
 
-  // Filtering
+    // Filter based on showOnlyGroups
+    if (showOnlyGroups) {
+      return groups.filter((group) => showOnlyGroups.includes(group)) as [
+        null | string,
+        ...string[],
+      ];
+    }
+    return groups;
+  }, [atendeeGroups, showVirtualGroup, showOnlyGroups]);
+
+  // Soft filtering (based on state - highlighting)
   const { state: filterState, component: filterComponent } = useFilters();
 
   const concurrentBlocksMap = useMemo(() => {
@@ -233,9 +254,9 @@ export const ComposeSchedule = ({
           );
         });
 
-        const shownGroupsIndices = shownInGroups.map((groupId) =>
-          shownGroups.indexOf(groupId),
-        );
+        const shownGroupsIndices = shownInGroups
+          .map((groupId) => shownGroups.indexOf(groupId))
+          .filter((groupIdx) => groupIdx !== -1);
         const mapForDayByGroupIdxToBlockOrder = new Map(
           Array.from(mapForDate.entries()).map(
             ([group, blockOrders]): [number, number[]] => [

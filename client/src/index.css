@@ -754,6 +754,17 @@ p {
   );
 }
 
+@media print {
+  .scheduleTable__plannableTitle {
+    white-space: normal;
+  }
+
+  .scheduleTable__plannable {
+    background: white;
+    border: .5px solid #000;
+  }
+}
+
 .dialog {
   position: fixed;
   top: 0;
