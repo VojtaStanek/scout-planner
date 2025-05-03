@@ -64,8 +64,10 @@ export const ComposeSchedule = ({
   // Hard filtering (based on props - for printing)
   const scheduledPlannables = useMemo(() => {
     if (showOnlyGroups) {
-      return scheduledPlannablesAll.filter((it) =>
-        it.groups.some((group) => showOnlyGroups.includes(group)),
+      return scheduledPlannablesAll.filter(
+        (it) =>
+          it.groups.some((group) => showOnlyGroups.includes(group)) ||
+          (it.groups.length === 0 && showOnlyGroups.includes(null)),
       );
     }
     return scheduledPlannablesAll;
