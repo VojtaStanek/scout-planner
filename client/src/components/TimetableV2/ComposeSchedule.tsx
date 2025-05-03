@@ -107,8 +107,10 @@ export const ComposeSchedule = ({
     }
 
     // Start one day before the first date and end one day after the last date
-    firstDate = firstDate.subtract({ days: 1 });
-    lastDate = lastDate.add({ days: 1 });
+    if (!printView) {
+      firstDate = firstDate.subtract({ days: 1 });
+      lastDate = lastDate.add({ days: 1 });
+    }
 
     // Get all dates between the first and last date
     let last = firstDate;
@@ -118,7 +120,7 @@ export const ComposeSchedule = ({
       dates.push(last);
     }
     return dates;
-  }, [scheduledPlannables]);
+  }, [scheduledPlannables, printView]);
 
   const atendeeGroups = useGroups();
 
